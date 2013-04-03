@@ -10,6 +10,28 @@ Plugin.create(:fate) do
     time.hour*10000 + time.min*100 + time.sec
   end
 
+  def make_time_cond(now)
+    start = time_hash(now-1800)
+    last = time_hash(now+1800)
+    if last < start # may be across 00:00
+      {"$or" => [
+        {created_at_time: {
+          "$gt" => start,
+          "$lt" => 235959
+        }},
+        {created_at_time: {
+          "$gt" => 000000,
+          "$lt" => last
+        }}
+      ]}
+    else
+      {created_at_time: {
+        "$gt" => start,
+        "$lt" => last
+      }}
+    end
+  end
+
   def gaussian(mean, dev)
     theta = 2 * Math::PI * rand
     rho = (-2*Math.log(rand))**0.5
@@ -22,21 +44,19 @@ Plugin.create(:fate) do
     if cnt <= 0
       now = Time.now
       query = {
-        created_at_time: {
-          "$gt" => time_hash(now-1800),
-          "$lt" => time_hash(now+1800)
-        },
         "entities.user_mentions" => {
           "$size" => 0
         }
-      }
+      }.merge(make_time_cond(now))
       puts query
       candidates = @tweets.find(query).to_a
       tw = candidates.sample
-      text = tw["text"]
-      text.gsub!(/(?= )#/, "■")
-      puts text
-      service.update(message: text)
+      if tw
+        text = tw["text"]
+        text.gsub!(/(?= )#/, "■")
+        puts text
+        service.update(message: text)
+      end
       cnt = gaussian(15, 5)
       if cnt < 0
         cnt = -cnt
@@ -71,5 +91,8 @@ Plugin.create(:fate) do
         message.post(message: text)
       end
     end
+  end
+
+  on_followers_created do
   end
 end
