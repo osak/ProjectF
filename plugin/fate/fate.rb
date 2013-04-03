@@ -4,6 +4,7 @@ Plugin.create(:fate) do
   @mongo = Mongo::MongoClient.new
   @tweets = @mongo.db("project_f")["tweets"]
   UserConfig[:fate_count] ||= 0
+  UserConfig[:fate_last_reply_id] ||= nil
 
   def time_hash(time)
     time.hour*10000 + time.min*100 + time.sec
@@ -32,9 +33,10 @@ Plugin.create(:fate) do
       puts query
       candidates = @tweets.find(query).to_a
       tw = candidates.sample
-      tw.gsub!(/(?= )\#/, "■")
-      puts tw
-      service.update(message: tw["text"])
+      text = tw["text"]
+      text.gsub!(/(?= )#/, "■")
+      puts text
+      service.update(message: text)
       cnt = gaussian(15, 5)
       if cnt < 0
         cnt = -cnt
@@ -45,7 +47,10 @@ Plugin.create(:fate) do
   end
 
   on_mention do |service, messages|
+    last_reply_id = UserConfig[:fate_last_reply_id]
     messages.each do |message|
+      UserConfig[:fate_last_reply_id] = [UserConfig[:fate_last_reply_id] || 0, message.id || 0].max
+      next if last_reply_id.nil? || message.id < last_reply_id
       puts "Get mention: #{message.message}"
       now = Time.now
       query = {
