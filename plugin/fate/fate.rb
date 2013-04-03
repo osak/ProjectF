@@ -55,7 +55,7 @@ Plugin.create(:fate) do
         text = tw["text"]
         text.gsub!(/(?<= )#/, "■")
         puts text
-        service.update(message: text)
+        service.update(message: text) if text !~ /@/
       end
       cnt = gaussian(15, 5)
       if cnt < 0
