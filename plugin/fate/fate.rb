@@ -41,4 +41,28 @@ Plugin.create(:fate) do
     end
     @cnt -= 1
   end
+
+  on_mention do |service, messages|
+    messages.each do |message|
+      puts "Get mention: #{message.message}"
+      now = Time.now
+      query = {
+        created_at_time: {
+          "$gt" => time_hash(now-1800),
+          "$lt" => time_hash(now+1800)
+        },
+        "entities.user_mentions" => {
+          "$size" => 1
+        }
+      }
+      candidates = @tweets.find(query).to_a
+      selected = candidates.shuffle.find{|tw| tw["text"] !~ /^\s*RT/}
+      if selected
+        text = selected["text"]
+        text.gsub!(/@[_a-zA-Z0-9]+/, "@#{message.user.idname}")
+        puts "Reply to '#{message.message}': #{text}"
+        message.post(message: text)
+      end
+    end
+  end
 end
