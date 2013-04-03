@@ -3,7 +3,7 @@ require 'mongo'
 Plugin.create(:fate) do
   @mongo = Mongo::MongoClient.new
   @tweets = @mongo.db("project_f")["tweets"]
-  @cnt = 0
+  UserConfig[:fate_count] ||= 0
 
   def time_hash(time)
     time.hour*10000 + time.min*100 + time.sec
@@ -17,7 +17,8 @@ Plugin.create(:fate) do
   end
 
   on_period do |service|
-    if @cnt <= 0
+    cnt = UserConfig[:fate_count]
+    if cnt <= 0
       now = Time.now
       query = {
         created_at_time: {
@@ -33,13 +34,13 @@ Plugin.create(:fate) do
       tw = candidates.sample
       puts tw
       service.update(message: tw["text"])
-      @cnt = gaussian(15, 5)
-      if @cnt < 0
-        @cnt = -@cnt
+      cnt = gaussian(15, 5)
+      if cnt < 0
+        cnt = -cnt
       end
-      puts @cnt
+      puts cnt
     end
-    @cnt -= 1
+    UserConfig[:fate_count] = cnt-1
   end
 
   on_mention do |service, messages|
