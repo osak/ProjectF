@@ -53,7 +53,7 @@ Plugin.create(:fate) do
       tw = candidates.sample
       if tw
         text = tw["text"]
-        text.gsub!(/(?= )#/, "■")
+        text.gsub!(/(?<= )#/, "■")
         puts text
         service.update(message: text)
       end
