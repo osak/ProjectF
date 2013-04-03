@@ -70,7 +70,7 @@ Plugin.create(:fate) do
     last_reply_id = UserConfig[:fate_last_reply_id]
     messages.each do |message|
       UserConfig[:fate_last_reply_id] = [UserConfig[:fate_last_reply_id] || 0, message.id || 0].max
-      next if last_reply_id.nil? || message.id < last_reply_id
+      next if last_reply_id.nil? || message.id <= last_reply_id
       puts "Get mention: #{message.message}"
       now = Time.now
       query = {
