@@ -74,14 +74,10 @@ Plugin.create(:fate) do
       puts "Get mention: #{message.message}"
       now = Time.now
       query = {
-        created_at_time: {
-          "$gt" => time_hash(now-1800),
-          "$lt" => time_hash(now+1800)
-        },
         "entities.user_mentions" => {
           "$size" => 1
         }
-      }
+      }.merge(make_time_cond(now))
       candidates = @tweets.find(query).to_a
       selected = candidates.shuffle.find{|tw| tw["text"] !~ /^\s*RT/}
       if selected
