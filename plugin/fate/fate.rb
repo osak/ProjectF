@@ -32,6 +32,7 @@ Plugin.create(:fate) do
       puts query
       candidates = @tweets.find(query).to_a
       tw = candidates.sample
+      tw.gsub!(/(?= )\#/, "■")
       puts tw
       service.update(message: tw["text"])
       cnt = gaussian(15, 5)
