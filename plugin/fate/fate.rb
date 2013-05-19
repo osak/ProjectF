@@ -1,10 +1,21 @@
 require 'mongo'
+require 'mecab/ext'
+require 'wordnet-ja'
 
 Plugin.create(:fate) do
   @mongo = Mongo::MongoClient.new
   @tweets = @mongo.db("project_f")["tweets"]
+  @tagged_tweets = @mongo.db("project_f")["tagged_tweets"]
   UserConfig[:fate_count] ||= 0
   UserConfig[:fate_last_reply_id] ||= nil
+  ActiveRecord::Base.establish_connection(adapter: 'sqlite3', database: File.join(__dir__, "wnjpn.db"))
+  POS_TABLE = {
+    '名詞' => 'n',
+    '動詞' => 'v',
+    '形容詞' => 'a',
+    '副詞' => 'r',
+  }.freeze
+
 
   def time_hash(time)
     time.hour*10000 + time.min*100 + time.sec
@@ -66,19 +77,48 @@ Plugin.create(:fate) do
     UserConfig[:fate_count] = cnt-1
   end
 
+  def mention_by_wordnet(message)
+    Mecab::Ext::Parser.parse(str).each do |node|
+      features = node.feature.split(/,/)
+      pos = POS_TABLE[features[0]]
+      word = Word.find_by(lemma: node.surface, pos: pos)
+      if word
+        sense = word.senses.first
+        synset = sense.synsets.first
+        tags << synset.synset
+        ancestors = synset.ancestors
+        if ancestors
+          ancestors.each do |ancestor|
+            break if ancestor.hops >= 2
+            tags << ancestor.synset2
+          end
+        end
+      end
+    end
+    candidates = @tagged_tweets.find({tag: {"$in" => tags.uniq}})
+    obj_ids = candidates.map{|c| c['obj_id']}
+    cand_tweets = @tweets.find({'_id' => {"$in" => obj_ids}, "entities.user_mentions" => {"$size" => 1}})
+    cand_tweets.select{|c| c['text'] !~ /\s*RT/}
+  end
+
+  def mention_by_time(message)
+    puts "Get mention: #{message.message}"
+    now = Time.now
+    query = {
+      "entities.user_mentions" => {
+        "$size" => 1
+      }
+    }.merge(make_time_cond(now))
+    candidates = @tweets.find(query).to_a
+  end
+
   on_mention do |service, messages|
     last_reply_id = UserConfig[:fate_last_reply_id]
     messages.each do |message|
       UserConfig[:fate_last_reply_id] = [UserConfig[:fate_last_reply_id] || 0, message.id || 0].max
       next if last_reply_id.nil? || message.id <= last_reply_id
-      puts "Get mention: #{message.message}"
-      now = Time.now
-      query = {
-        "entities.user_mentions" => {
-          "$size" => 1
-        }
-      }.merge(make_time_cond(now))
-      candidates = @tweets.find(query).to_a
+      candidates = mention_by_wordnet(message)
+      candidates = mention_by_time(message) if candidates.empty?
       selected = candidates.shuffle.find{|tw| tw["text"] !~ /^\s*RT/}
       if selected
         text = selected["text"]
