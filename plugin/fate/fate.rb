@@ -1,3 +1,4 @@
+#-*- encoding: utf-8 -*-
 require 'mongo'
 require 'mecab/ext'
 require 'wordnet-ja'
@@ -78,7 +79,9 @@ Plugin.create(:fate) do
   end
 
   def mention_by_wordnet(message)
-    Mecab::Ext::Parser.parse(str).each do |node|
+    puts "Get mention wn: #{message.message}"
+    tags = []
+    Mecab::Ext::Parser.parse(message[:message]).each do |node|
       features = node.feature.split(/,/)
       pos = POS_TABLE[features[0]]
       word = Word.find_by(lemma: node.surface, pos: pos)
