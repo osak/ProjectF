@@ -1,3 +1,4 @@
+require File.join(__dir__, "spec_helper.rb")
 require File.join(__dir__, "..", "fate.rb")
 
 describe ProjectF::Fate do
