@@ -31,8 +31,8 @@ module ProjectF
       candidates = @db.tweets_around(now)
       tw = candidates.sample
       if tw
-        text = tw["text"]
-        text.gsub!(/(?<=( |　|^|))#/, "■")
+        text = tw[:text]
+        text.gsub!(/((?<=( |　))|^)#/, "■")
         return text if text !~ /@/
       end
       nil
@@ -86,10 +86,9 @@ module ProjectF
     def reply_to(message)
       candidates = self.mention_by_wordnet(message)
       candidates = self.mention_by_time(message) if candidates.empty?
-      selected = candidates.shuffle.find{|tw| tw["text"] !~ /^\s*RT/}
+      selected = candidates.shuffle.find{|tw| tw[:text] !~ /^\s*RT/}
       if selected
-        text = selected["text"]
-        text = selected["text"]
+        text = selected[:text]
         text.gsub!(/@[_a-zA-Z0-9]+/, "@#{message.user.idname}")
         return text
       end
