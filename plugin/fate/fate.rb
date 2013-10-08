@@ -2,6 +2,7 @@
 require 'mongo'
 require 'mecab/ext'
 require 'wordnet-ja'
+require File.join(__dir__, "fatedb.rb")
 
 module ProjectF
   class Fate
@@ -12,11 +13,8 @@ module ProjectF
       '副詞' => 'r',
     }.freeze
 
-    def initialize
-      @mongo = Mongo::MongoClient.new
-      @tweets = @mongo.db("project_f")["tweets"]
-      @tagged_tweets = @mongo.db("project_f")["tagged_tweets"]
-      ActiveRecord::Base.establish_connection(adapter: 'sqlite3', database: File.join(__dir__, "wnjpn.db"))
+    def initialize(db)
+      @db = db
     end
 
     # Hash the time into single integer
@@ -107,12 +105,7 @@ module ProjectF
       end
 
       # Pick up the tweets sharing at least one tag with message
-      candidates = @tagged_tweets.find({tag: {"$in" => tags.uniq}})
-      obj_ids = candidates.map{|c| c['obj_id']}
-
-      # Retrieve body of the tweets
-      cand_tweets = @tweets.find({'_id' => {"$in" => obj_ids}, "entities.user_mentions" => {"$size" => 1}})
-      cand_tweets.select{|c| c['text'] !~ /\s*RT/}
+      @db.mentions_by_tags(tags)
     end
 
     # Find the suitable reply for message, based on current time
