@@ -74,8 +74,7 @@ module ProjectF
     # @return [Array] candidate tweets
     def mention_by_time(message)
       puts "Get mention: #{message.message}"
-      now = Time.now
-      candidates = @db.tweets_around(now, mention: true)
+      candidates = @db.tweets_around(message.created, mention: true)
     end
     private :mention_by_wordnet, :mention_by_time
 
@@ -84,8 +83,8 @@ module ProjectF
     # @param message [Message] message to be replied
     # @return [String] reply tweet
     def reply_to(message)
-      candidates = self.mention_by_wordnet(message)
-      candidates = self.mention_by_time(message) if candidates.empty?
+      candidates = mention_by_wordnet(message)
+      candidates = mention_by_time(message) if candidates.empty?
       selected = candidates.shuffle.find{|tw| tw[:text] !~ /^\s*RT/}
       if selected
         text = selected[:text]
