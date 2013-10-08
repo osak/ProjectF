@@ -17,41 +17,6 @@ module ProjectF
       @db = db
     end
 
-    # Hash the time into single integer
-    #
-    # @param time [Time] time to be hashed
-    # @return [Integer] hashed value
-    def time_hash(time)
-      time.hour*10000 + time.min*100 + time.sec
-    end
-
-    # Make condition object for MongoDB, requesting for the tweets around specified time
-    #
-    # @param now [Time]
-    # @return [Hash] condition hash for MongoDB
-    def make_time_cond(now)
-      start = self.time_hash(now-1800)
-      last = self.time_hash(now+1800)
-      if last < start # may be across 00:00
-        {"$or" => [
-          {created_at_time: {
-            "$gt" => start,
-            "$lt" => 235959
-          }},
-          {created_at_time: {
-            "$gt" => 000000,
-            "$lt" => last
-          }}
-        ]}
-      else
-        {created_at_time: {
-          "$gt" => start,
-          "$lt" => last
-        }}
-      end
-    end
-    private :time_hash, :make_time_cond
-
     def gaussian(mean, dev)
       theta = 2 * Math::PI * rand
       rho = (-2*Math.log(rand))**0.5
@@ -63,12 +28,7 @@ module ProjectF
     #
     # @param now [Time] find a suitable tweet in around this time
     def autotweet(now)
-      query = {
-        "entities.user_mentions" => {
-          "$size" => 0
-        }
-      }.merge(self.make_time_cond(now))
-      candidates = @tweets.find(query).to_a
+      candidates = @db.tweets_around(now)
       tw = candidates.sample
       if tw
         text = tw["text"]
@@ -115,12 +75,7 @@ module ProjectF
     def mention_by_time(message)
       puts "Get mention: #{message.message}"
       now = Time.now
-      query = {
-        "entities.user_mentions" => {
-          "$size" => 1
-        }
-      }.merge(self.make_time_cond(now))
-      candidates = @tweets.find(query).to_a
+      candidates = @db.tweets_around(now, mention: true)
     end
     private :mention_by_wordnet, :mention_by_time
 
