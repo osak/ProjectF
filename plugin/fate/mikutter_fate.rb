@@ -6,6 +6,7 @@ require File.join(__dir__, 'fate.rb')
 
 Plugin.create(:mikutter_fate) do
   @fate = ProjectF::Fate.new
+  ActiveRecord::Base.establish_connection(adapter: 'sqlite3', database: File.join(__dir__, "wnjpn.db"))
   def gaussian(mean, dev)
     theta = 2 * Math::PI * rand
     rho = (-2*Math.log(rand))**0.5

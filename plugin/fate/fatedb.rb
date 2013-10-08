@@ -1,5 +1,4 @@
 require 'mongo'
-require 'wordnet-ja'
 
 module ProjectF
   class FateDB
@@ -7,7 +6,6 @@ module ProjectF
       @mongo = Mongo::MongoClient.new
       @tweets = @mongo.db("project_f")["tweets"]
       @tagged_tweets = @mongo.db("project_f")["tagged_tweets"]
-      ActiveRecord::Base.establish_connection(adapter: 'sqlite3', database: File.join(__dir__, "wnjpn.db"))
     end
 
     # Hash the time into single integer
