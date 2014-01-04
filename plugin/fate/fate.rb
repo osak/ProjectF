@@ -120,7 +120,7 @@ Plugin.create(:fate) do
     messages.each do |message|
       UserConfig[:fate_last_reply_id] = [UserConfig[:fate_last_reply_id] || 0, message.id || 0].max
       next if message[:user] == Service.primary.user
-      next if message[:retweeted]
+      next if message.retweet?
       next if last_reply_id.nil? || message.id <= last_reply_id
       candidates = mention_by_wordnet(message)
       candidates = mention_by_time(message) if candidates.empty?
